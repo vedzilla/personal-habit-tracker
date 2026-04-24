@@ -1,0 +1,13 @@
+{
+  "name": "Habit Tracker",
+  "short_name": "Habits",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafafa",
+  "theme_color": "#6366f1",
+  "icons": [
+    { "src": "/icon", "sizes": "192x192", "type": "image/png" },
+    { "src": "/apple-icon", "sizes": "180x180", "type": "image/png" }
+  ]
+}

@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Habit Tracker
 
-## Getting Started
+Personal habit tracker — works great on iPhone/iPad as a home-screen PWA.
 
-First, run the development server:
+- Add habits with emoji, color, and custom input type: **checkbox, counter, slider, or number**
+- Custom units (glasses, min, km, pages, …) and optional daily targets
+- Today view, manage page, and 60-day heatmap + streaks
+- Single-password auth (no email/verification codes), cookie session
+- Supabase Postgres for storage, Next.js App Router, deploy to Vercel
+
+## 1. Set up Supabase (free tier)
+
+1. Create a project at https://supabase.com (pick any region close to you).
+2. In the SQL Editor, paste the contents of [`supabase/schema.sql`](./supabase/schema.sql) and run it.
+3. Go to **Project Settings → API** and copy:
+   - **Project URL** → `SUPABASE_URL`
+   - **service_role** secret key → `SUPABASE_SERVICE_ROLE_KEY`
+
+(This app uses the service role key server-side only. It is never exposed to the browser.)
+
+## 2. Fill in `.env.local`
+
+Copy `.env.example` to `.env.local` and fill in:
+
+```
+APP_PASSWORD=<your chosen password>
+SESSION_SECRET=<32+ random hex chars, generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))">
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+```
+
+## 3. Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Enter your password → add habits → start logging.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 4. Deploy to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npx vercel              # first-time: link the project
+npx vercel env add APP_PASSWORD
+npx vercel env add SESSION_SECRET
+npx vercel env add SUPABASE_URL
+npx vercel env add SUPABASE_SERVICE_ROLE_KEY
+npx vercel --prod
+```
 
-## Learn More
+Or via the dashboard: import the repo, paste all four env vars in **Settings → Environment Variables**, then deploy.
 
-To learn more about Next.js, take a look at the following resources:
+## 5. Install on your phone/iPad
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open the deployed URL in Safari → Share → **Add to Home Screen**. It runs full-screen like a native app.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Stack
 
-## Deploy on Vercel
+- Next.js 16 (App Router, Node.js runtime)
+- Tailwind CSS v4
+- Supabase (Postgres + `@supabase/supabase-js`)
+- iron-session (encrypted cookie)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## File map
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    api/{login,logout,habits,entries}/route.ts   API
+    habits/{page,new/page,[id]/edit/page}.tsx    Manage
+    stats/page.tsx                               Heatmap
+    login/page.tsx                               Sign in
+    page.tsx                                     Today
+    layout.tsx  icon.tsx  apple-icon.tsx
+  components/HabitForm.tsx
+  lib/{supabase,session,types}.ts
+  proxy.ts                                       Auth gate
+public/manifest.json
+supabase/schema.sql
+```
