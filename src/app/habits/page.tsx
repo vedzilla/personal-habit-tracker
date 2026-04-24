@@ -24,6 +24,28 @@ export default function HabitsPage() {
     setHabits((prev) => prev.filter((h) => h.id !== id));
   }
 
+  async function duplicate(h: Habit) {
+    const res = await fetch("/api/habits", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: `${h.name} (copy)`,
+        emoji: h.emoji,
+        color: h.color,
+        input_type: h.input_type,
+        unit: h.unit,
+        min_value: h.min_value,
+        max_value: h.max_value,
+        step: h.step,
+        target: h.target,
+      }),
+    });
+    if (res.ok) {
+      const copy = (await res.json()) as Habit;
+      setHabits((prev) => [...prev, copy]);
+    }
+  }
+
   async function logout() {
     await fetch("/api/logout", { method: "POST" });
     router.push("/login");
@@ -76,13 +98,21 @@ export default function HabitsPage() {
               </div>
               <Link
                 href={`/habits/${h.id}/edit`}
-                className="text-sm px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800"
+                className="text-sm px-2 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800"
               >
                 Edit
               </Link>
               <button
+                onClick={() => duplicate(h)}
+                className="text-sm px-2 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800"
+                title="Duplicate"
+                aria-label="Duplicate"
+              >
+                ⧉
+              </button>
+              <button
                 onClick={() => del(h.id)}
-                className="text-sm px-3 py-1 rounded-lg text-rose-600"
+                className="text-sm px-2 py-1 rounded-lg text-rose-600"
               >
                 Delete
               </button>
