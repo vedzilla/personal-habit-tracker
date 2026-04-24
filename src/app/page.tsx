@@ -1,15 +1,44 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
 import type { Habit, Entry } from "@/lib/types";
 
-function todayStr() {
-  const d = new Date();
+function toDateStr(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+function todayStr() {
+  return toDateStr(new Date());
+}
+function shiftDate(s: string, days: number) {
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return toDateStr(dt);
+}
+function labelFor(selected: string): { kicker: string; weekday: string } {
+  const today = todayStr();
+  const yesterday = shiftDate(today, -1);
+  const tomorrow = shiftDate(today, 1);
+  const [y, m, d] = selected.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  const weekday = dt.toLocaleDateString(undefined, { weekday: "long" });
+  if (selected === today) return { kicker: "Today", weekday };
+  if (selected === yesterday) return { kicker: "Yesterday", weekday };
+  if (selected === tomorrow) return { kicker: "Tomorrow", weekday };
+  return { kicker: weekday, weekday };
+}
+function fullDateLine(selected: string) {
+  const [y, m, d] = selected.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function isFulfilled(habit: Habit, value: number | undefined): boolean {
@@ -26,14 +55,20 @@ export default function Home() {
   const [entries, setEntries] = useState<Record<string, Entry>>({});
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
-  const today = todayStr();
+  const [selected, setSelected] = useState<string>(todayStr());
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
+      setLoading(true);
       const [h, e] = await Promise.all([
         fetch("/api/habits").then((r) => r.json()),
-        fetch(`/api/entries?from=${today}&to=${today}`).then((r) => r.json()),
+        fetch(`/api/entries?from=${selected}&to=${selected}`).then((r) =>
+          r.json(),
+        ),
       ]);
+      if (cancelled) return;
       setHabits(h as Habit[]);
       const map: Record<string, Entry> = {};
       for (const x of e as Entry[]) map[x.habit_id] = x;
@@ -41,7 +76,10 @@ export default function Home() {
       setLoading(false);
     }
     load();
-  }, [today]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
 
   async function log(habit: Habit, value: number) {
     const wasHit = isFulfilled(habit, entries[habit.id]?.value);
@@ -56,14 +94,18 @@ export default function Home() {
         id: prev[habit.id]?.id ?? "",
         habit_id: habit.id,
         value,
-        logged_date: today,
+        logged_date: selected,
         created_at: prev[habit.id]?.created_at ?? new Date().toISOString(),
       },
     }));
     await fetch("/api/entries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ habit_id: habit.id, value, logged_date: today }),
+      body: JSON.stringify({
+        habit_id: habit.id,
+        value,
+        logged_date: selected,
+      }),
     });
   }
 
@@ -73,21 +115,49 @@ export default function Home() {
       delete n[habit.id];
       return n;
     });
-    await fetch(`/api/entries?habit_id=${habit.id}&logged_date=${today}`, {
-      method: "DELETE",
-    });
+    await fetch(
+      `/api/entries?habit_id=${habit.id}&logged_date=${selected}`,
+      { method: "DELETE" },
+    );
   }
 
-  const now = new Date();
-  const weekday = now.toLocaleDateString(undefined, { weekday: "long" });
-  const dateLine = now.toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  function prevDay() {
+    setSelected((s) => shiftDate(s, -1));
+  }
+  function nextDay() {
+    setSelected((s) => shiftDate(s, 1));
+  }
+  function goToday() {
+    setSelected(todayStr());
+  }
+
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.target as HTMLElement;
+    if (t.closest("input, button, a, [role='slider']")) return;
+    touchStart.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+  }
+  function onTouchEnd(e: React.TouchEvent) {
+    if (!touchStart.current) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current.x;
+    const dy = e.changedTouches[0].clientY - touchStart.current.y;
+    touchStart.current = null;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > 50) return;
+    if (dx > 0) prevDay();
+    else nextDay();
+  }
+
+  const { kicker, weekday } = labelFor(selected);
+  const isToday = selected === todayStr();
 
   return (
-    <main className="min-h-screen grain">
+    <main
+      className="min-h-screen grain touch-pan-y"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       {toast && (
         <div
           role="status"
@@ -104,11 +174,46 @@ export default function Home() {
         <TopNav />
 
         <header className="mb-12">
-          <p className="kicker">Today</p>
-          <h1 className="serif italic text-6xl leading-[0.95] mt-3">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={prevDay}
+              aria-label="Previous day"
+              className="w-9 h-9 rounded-full border hairline text-muted hover:text-ink hover:bg-[color:var(--surface)] transition-colors flex items-center justify-center text-lg leading-none"
+            >
+              ‹
+            </button>
+            <button
+              onClick={goToday}
+              disabled={isToday}
+              className="kicker disabled:opacity-60"
+              title="Jump to today"
+            >
+              {kicker}
+            </button>
+            <button
+              onClick={nextDay}
+              aria-label="Next day"
+              className="w-9 h-9 rounded-full border hairline text-muted hover:text-ink hover:bg-[color:var(--surface)] transition-colors flex items-center justify-center text-lg leading-none"
+            >
+              ›
+            </button>
+          </div>
+          <h1 className="serif italic text-6xl leading-[0.95] text-center">
             {weekday}.
           </h1>
-          <p className="text-muted text-sm mt-2">{dateLine}</p>
+          <p className="text-muted text-sm mt-2 text-center">
+            {fullDateLine(selected)}
+          </p>
+          {!isToday && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={goToday}
+                className="text-[11px] tracking-[0.22em] uppercase text-muted hover:text-ink transition-colors border-b hairline pb-0.5"
+              >
+                Back to today
+              </button>
+            </div>
+          )}
         </header>
 
         {loading ? (
