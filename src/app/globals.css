@@ -1,37 +1,225 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #f6f1e7;
+  --surface: #fbf7ee;
+  --ink: #18160f;
+  --ink-muted: #6b6456;
+  --ink-soft: #a89f8b;
+  --line: #e4dcca;
+  --accent: #18160f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #0e0d09;
+    --surface: #16140e;
+    --ink: #f1e9d6;
+    --ink-muted: #8f8776;
+    --ink-soft: #565043;
+    --line: #27241c;
+    --accent: #f1e9d6;
   }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-instrument-serif);
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-serif,
+.serif {
+  font-family: var(--font-instrument-serif), "Cormorant Garamond", Georgia, serif;
+  font-weight: 400;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.kicker {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.hairline {
+  border-color: var(--line);
+}
+
+.grain {
+  position: relative;
+}
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    rgba(24, 22, 15, 0.035) 1px,
+    transparent 1px
+  );
+  background-size: 3px 3px;
+  mix-blend-mode: multiply;
+  z-index: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .grain::before {
+    background-image: radial-gradient(
+      rgba(241, 233, 214, 0.04) 1px,
+      transparent 1px
+    );
+    mix-blend-mode: screen;
+  }
 }
 
 @keyframes toastIn {
-  from {
+  0% {
     opacity: 0;
-    transform: translate(-50%, -12px);
+    transform: translate(-50%, -18px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translate(-50%, 0);
   }
+}
+
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger > * {
+  animation: fadeUp 400ms ease-out both;
+}
+.stagger > *:nth-child(1) {
+  animation-delay: 40ms;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 90ms;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 140ms;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 190ms;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 290ms;
+}
+.stagger > *:nth-child(7) {
+  animation-delay: 340ms;
+}
+.stagger > *:nth-child(8) {
+  animation-delay: 390ms;
+}
+.stagger > *:nth-child(n + 9) {
+  animation-delay: 430ms;
+}
+
+/* Minimal range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  height: 32px;
+  cursor: grab;
+  padding: 0;
+  margin: 0;
+}
+input[type="range"]:active {
+  cursor: grabbing;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--line);
+}
+input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: var(--line);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--thumb, var(--ink));
+  margin-top: -10.5px;
+  border: 3px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--thumb, var(--ink));
+  cursor: grab;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--thumb, var(--ink));
+  border: 3px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--thumb, var(--ink));
+  cursor: grab;
+}
+
+/* Inputs */
+.field {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 150ms ease;
+}
+.field:focus {
+  border-color: var(--ink);
+}
+.field::placeholder {
+  color: var(--ink-soft);
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Remove number spinners in hero inputs */
+input[type="number"].hero::-webkit-outer-spin-button,
+input[type="number"].hero::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"].hero {
+  -moz-appearance: textfield;
 }

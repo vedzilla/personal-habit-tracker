@@ -8,17 +8,20 @@ export default function Icon() {
     (
       <div
         style={{
-          fontSize: 140,
-          background: "#6366f1",
+          fontSize: 120,
+          background: "#f6f1e7",
+          color: "#18160f",
           width: "100%",
           height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          borderRadius: 32,
+          fontFamily: "Georgia, serif",
+          fontStyle: "italic",
+          letterSpacing: "-0.04em",
         }}
       >
-        🌱
+        h.
       </div>
     ),
     { ...size },

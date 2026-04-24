@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import TopNav from "@/components/TopNav";
 import type { Habit, Entry } from "@/lib/types";
 
 function dateDaysAgo(n: number) {
@@ -63,72 +63,84 @@ export default function StatsPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 pb-24">
-      <header className="flex items-center gap-3 mb-6">
-        <Link href="/" className="text-zinc-500">
-          ‹ Today
-        </Link>
-        <h1 className="text-2xl font-semibold">Stats</h1>
-      </header>
+    <main className="min-h-screen grain">
+      <div className="relative z-10 max-w-xl mx-auto px-6 pt-10 pb-32">
+        <TopNav />
 
-      {loading ? (
-        <div className="text-center text-zinc-500 py-8">Loading…</div>
-      ) : habits.length === 0 ? (
-        <div className="text-center text-zinc-500 py-8">No habits yet.</div>
-      ) : (
-        <div className="space-y-6">
-          {habits.map((h) => {
-            const m = entriesByHabit[h.id] ?? {};
-            const s = streak(h.id);
-            const logged = Object.values(m).filter(
-              (e) => Number(e.value) > 0,
-            ).length;
-            const denom = Number(h.target) || Number(h.max_value) || 1;
-            return (
-              <div
-                key={h.id}
-                className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border-l-4"
-                style={{ borderLeftColor: h.color }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">{h.emoji}</div>
-                    <div className="font-medium">{h.name}</div>
-                  </div>
-                  <div className="text-xs text-zinc-500">
-                    🔥 {s}d · {logged}/{DAYS}
-                  </div>
-                </div>
-                <div className="grid grid-cols-[repeat(15,minmax(0,1fr))] gap-1">
-                  {days.map((d) => {
-                    const e = m[d];
-                    const v = e ? Number(e.value) : 0;
-                    const filled = v > 0;
-                    const opacity = filled
-                      ? h.input_type === "checkbox"
-                        ? 1
-                        : Math.min(1, 0.3 + (v / denom) * 0.7)
-                      : 1;
-                    return (
-                      <div
-                        key={d}
-                        title={`${d}: ${e ? e.value : "—"}`}
-                        className="aspect-square rounded-sm"
-                        style={{
-                          backgroundColor: filled
-                            ? h.color
-                            : "rgba(127,127,127,0.12)",
-                          opacity,
-                        }}
+        <header className="mb-12">
+          <p className="kicker">The record</p>
+          <h1 className="serif italic text-5xl mt-3 leading-none">
+            Sixty days.
+          </h1>
+        </header>
+
+        {loading ? (
+          <div className="text-soft text-sm">Loading…</div>
+        ) : habits.length === 0 ? (
+          <div className="border-t border-b hairline py-16 text-center">
+            <p className="serif italic text-2xl">Nothing to show yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-10 stagger">
+            {habits.map((h) => {
+              const m = entriesByHabit[h.id] ?? {};
+              const s = streak(h.id);
+              const logged = Object.values(m).filter(
+                (e) => Number(e.value) > 0,
+              ).length;
+              const denom = Number(h.target) || Number(h.max_value) || 1;
+              return (
+                <section key={h.id} className="border-t hairline pt-6">
+                  <header className="flex items-baseline justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: h.color }}
                       />
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+                      <span className="text-xl">{h.emoji}</span>
+                      <h2 className="serif italic text-2xl">{h.name}</h2>
+                    </div>
+                    <div className="text-right">
+                      <div className="serif tabular text-3xl leading-none">
+                        {s}
+                      </div>
+                      <div className="kicker mt-1">day streak</div>
+                    </div>
+                  </header>
+                  <div className="grid grid-cols-[repeat(15,minmax(0,1fr))] gap-[3px]">
+                    {days.map((d) => {
+                      const e = m[d];
+                      const v = e ? Number(e.value) : 0;
+                      const filled = v > 0;
+                      const opacity = filled
+                        ? h.input_type === "checkbox"
+                          ? 1
+                          : Math.min(1, 0.35 + (v / denom) * 0.65)
+                        : 1;
+                      return (
+                        <div
+                          key={d}
+                          title={`${d}: ${e ? e.value : "—"}`}
+                          className="aspect-square"
+                          style={{
+                            backgroundColor: filled
+                              ? h.color
+                              : "var(--line)",
+                            opacity,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="kicker mt-3 text-right">
+                    {logged} / {DAYS} days
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </main>
   );
 }

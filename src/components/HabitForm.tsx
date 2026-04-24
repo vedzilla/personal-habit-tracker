@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import type { Habit, InputType } from "@/lib/types";
 
 const COLORS = [
-  "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16",
-  "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9",
-  "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef",
-  "#ec4899", "#f43f5e", "#64748b", "#78716c", "#111827",
+  "#9e3a2f", "#b8693d", "#c49a3c", "#7d8837",
+  "#4a7a4a", "#3d7a6e", "#3f6d85", "#4d5c91",
+  "#6d4988", "#8a3a60", "#6e3d42", "#5e493a",
+  "#a68a6d", "#c5a882", "#8a8272", "#2d2a26",
 ];
 
 const EMOJI_SUGGESTIONS = [
@@ -16,11 +16,18 @@ const EMOJI_SUGGESTIONS = [
   "☕","🍎","🏋️","🚶","🧴","🦷","📖","🎧","🔥","⭐",
 ];
 
+const TYPE_COPY: Record<InputType, string> = {
+  checkbox: "a yes or no",
+  counter: "tally by step",
+  slider: "slide a range",
+  number: "any number",
+};
+
 export default function HabitForm({ habit }: { habit?: Habit }) {
   const router = useRouter();
   const [name, setName] = useState(habit?.name ?? "");
   const [emoji, setEmoji] = useState(habit?.emoji ?? "✨");
-  const [color, setColor] = useState(habit?.color ?? COLORS[0]);
+  const [color, setColor] = useState(habit?.color ?? COLORS[3]);
   const [inputType, setInputType] = useState<InputType>(habit?.input_type ?? "checkbox");
   const [unit, setUnit] = useState(habit?.unit ?? "");
   const [minValue, setMinValue] = useState(String(habit?.min_value ?? 0));
@@ -65,166 +72,193 @@ export default function HabitForm({ habit }: { habit?: Habit }) {
   }
 
   return (
-    <form onSubmit={save} className="space-y-5">
-      <Field label="Name">
+    <form onSubmit={save} className="space-y-10">
+      <Section label="The name">
         <input
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Drink water"
-          className="w-full px-4 py-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
+          placeholder="drink water, walk, read, …"
+          className="field serif italic text-3xl"
         />
-      </Field>
+      </Section>
 
-      <Field label="Emoji">
-        <div className="flex gap-2 items-center flex-wrap">
+      <Section label="Mark it">
+        <div className="flex items-center gap-3 flex-wrap">
           <input
             value={emoji}
             onChange={(e) => setEmoji(e.target.value)}
             maxLength={4}
-            className="w-20 px-3 py-3 text-center text-2xl rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
+            className="w-16 h-16 text-center text-3xl bg-transparent border hairline rounded-full"
           />
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5 flex-1">
             {EMOJI_SUGGESTIONS.map((e) => (
               <button
                 key={e}
                 type="button"
                 onClick={() => setEmoji(e)}
-                className="text-2xl p-1 hover:scale-110 transition"
+                className={`text-xl w-8 h-8 rounded-full transition ${
+                  emoji === e ? "bg-[color:var(--surface)]" : "hover:scale-110"
+                }`}
               >
                 {e}
               </button>
             ))}
           </div>
         </div>
-      </Field>
+      </Section>
 
-      <Field label="Color">
-        <div className="flex gap-2 flex-wrap">
+      <Section label="Its shade">
+        <div className="grid grid-cols-8 gap-3">
           {COLORS.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setColor(c)}
               aria-label={c}
-              className={`w-10 h-10 rounded-full transition ${
-                color === c ? "ring-2 ring-offset-2 ring-zinc-400" : ""
+              className={`aspect-square rounded-full transition ${
+                color === c
+                  ? "ring-2 ring-offset-2 ring-[color:var(--ink)] ring-offset-[color:var(--paper)]"
+                  : "hover:scale-110"
               }`}
-              style={{ backgroundColor: c }}
+              style={{ background: c }}
             />
           ))}
         </div>
-      </Field>
+      </Section>
 
-      <Field label="Tracking type">
-        <div className="grid grid-cols-2 gap-2">
-          {(["checkbox", "counter", "slider", "number"] as InputType[]).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setInputType(t)}
-              className={`px-4 py-3 rounded-xl font-medium text-sm capitalize transition ${
-                inputType === t
-                  ? "bg-indigo-600 text-white"
-                  : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+      <Section label="How you'll log it">
+        <div className="grid grid-cols-2 gap-px bg-[color:var(--line)] border hairline">
+          {(["checkbox", "counter", "slider", "number"] as InputType[]).map(
+            (t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setInputType(t)}
+                className={`px-4 py-4 text-left transition-colors ${
+                  inputType === t
+                    ? "bg-[color:var(--ink)] text-[color:var(--paper)]"
+                    : "bg-[color:var(--paper)] hover:bg-[color:var(--surface)]"
+                }`}
+              >
+                <div className="serif italic text-lg capitalize leading-none">
+                  {t}
+                </div>
+                <div
+                  className={`text-[11px] tracking-[0.15em] uppercase mt-2 ${
+                    inputType === t ? "opacity-70" : "text-soft"
+                  }`}
+                >
+                  {TYPE_COPY[t]}
+                </div>
+              </button>
+            ),
+          )}
         </div>
-      </Field>
+      </Section>
 
       {inputType !== "checkbox" && (
-        <>
-          <Field label="Unit (optional)">
-            <input
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              placeholder="glasses, min, km…"
-              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
-            />
-          </Field>
+        <Section label="Its shape">
+          <div className="space-y-6">
+            <div>
+              <span className="kicker block mb-1">Unit</span>
+              <input
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder="glasses, min, km, pages…"
+                className="field"
+              />
+            </div>
 
-          {inputType === "slider" && (
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Min">
-                <input
-                  type="number"
-                  value={minValue}
-                  onChange={(e) => setMinValue(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
-                />
-              </Field>
-              <Field label="Max">
-                <input
-                  type="number"
-                  value={maxValue}
-                  onChange={(e) => setMaxValue(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
-                />
-              </Field>
-              <Field label="Step">
+            {inputType === "slider" && (
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <span className="kicker block mb-1">Min</span>
+                  <input
+                    type="number"
+                    value={minValue}
+                    onChange={(e) => setMinValue(e.target.value)}
+                    className="field"
+                  />
+                </div>
+                <div>
+                  <span className="kicker block mb-1">Max</span>
+                  <input
+                    type="number"
+                    value={maxValue}
+                    onChange={(e) => setMaxValue(e.target.value)}
+                    className="field"
+                  />
+                </div>
+                <div>
+                  <span className="kicker block mb-1">Step</span>
+                  <input
+                    type="number"
+                    value={step}
+                    onChange={(e) => setStep(e.target.value)}
+                    className="field"
+                  />
+                </div>
+              </div>
+            )}
+
+            {(inputType === "counter" || inputType === "number") && (
+              <div>
+                <span className="kicker block mb-1">Step</span>
                 <input
                   type="number"
                   value={step}
                   onChange={(e) => setStep(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
+                  className="field"
                 />
-              </Field>
-            </div>
-          )}
+              </div>
+            )}
 
-          {(inputType === "counter" || inputType === "number") && (
-            <Field label="Step">
+            <div>
+              <span className="kicker block mb-1">Target (optional)</span>
               <input
                 type="number"
-                value={step}
-                onChange={(e) => setStep(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                placeholder="e.g. 8"
+                className="field"
               />
-            </Field>
-          )}
-
-          <Field label="Daily target (optional)">
-            <input
-              type="number"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              placeholder="e.g. 8"
-              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
-            />
-          </Field>
-        </>
+            </div>
+          </div>
+        </Section>
       )}
 
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-3 pt-4">
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex-1 py-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 font-medium"
+          className="flex-1 border hairline py-3 text-[11px] tracking-[0.22em] uppercase hover:bg-[color:var(--surface)] transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={saving || !name}
-          className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-medium disabled:opacity-50"
+          className="flex-[2] py-3 text-[11px] tracking-[0.22em] uppercase bg-[color:var(--ink)] text-[color:var(--paper)] hover:opacity-90 disabled:opacity-40 transition-opacity"
         >
-          {saving ? "Saving…" : habit ? "Save" : "Create"}
+          {saving ? "Saving…" : habit ? "Save changes" : "Create habit"}
         </button>
       </div>
     </form>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <label className="block">
-      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 block mb-1.5">
-        {label}
-      </span>
+    <section>
+      <div className="kicker mb-4">{label}</div>
       {children}
-    </label>
+    </section>
   );
 }

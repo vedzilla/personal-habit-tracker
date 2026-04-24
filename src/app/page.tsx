@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import TopNav from "@/components/TopNav";
 import type { Habit, Entry } from "@/lib/types";
 
 function todayStr() {
@@ -46,8 +47,8 @@ export default function Home() {
     const wasHit = isFulfilled(habit, entries[habit.id]?.value);
     const nowHit = isFulfilled(habit, value);
     if (nowHit && !wasHit) {
-      setToast("Let your systems win 🌱");
-      setTimeout(() => setToast(null), 2200);
+      setToast("let your systems win");
+      setTimeout(() => setToast(null), 2400);
     }
     setEntries((prev) => ({
       ...prev,
@@ -77,82 +78,84 @@ export default function Home() {
     });
   }
 
+  const now = new Date();
+  const weekday = now.toLocaleDateString(undefined, { weekday: "long" });
+  const dateLine = now.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 pb-24">
+    <main className="min-h-screen grain">
       {toast && (
         <div
           role="status"
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-emerald-500 text-white shadow-lg text-sm font-medium animate-[toastIn_220ms_ease-out]"
+          className="fixed top-5 left-1/2 z-50 px-5 py-2.5 rounded-full border hairline text-[11px] tracking-[0.22em] uppercase text-ink shadow-sm"
+          style={{
+            animation: "toastIn 260ms ease-out",
+            background: "var(--surface)",
+          }}
         >
           {toast}
         </div>
       )}
-      <header className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Today</h1>
-          <p className="text-sm text-zinc-500">
-            {new Date().toLocaleDateString(undefined, {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/habits"
-            className="px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm"
-          >
-            Manage
-          </Link>
-          <Link
-            href="/stats"
-            className="px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm"
-          >
-            Stats
-          </Link>
-        </div>
-      </header>
+      <div className="relative max-w-xl mx-auto px-6 pt-10 pb-32 z-10">
+        <TopNav />
 
-      {loading ? (
-        <div className="text-center text-zinc-500 py-16">Loading…</div>
-      ) : habits.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">🌱</div>
-          <p className="text-zinc-500 mb-4">No habits yet.</p>
-          <Link
-            href="/habits/new"
-            className="inline-block px-5 py-3 rounded-xl bg-indigo-600 text-white font-medium"
-          >
-            Add your first habit
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {habits.map((h) => (
-            <HabitCard
-              key={h.id}
-              habit={h}
-              entry={entries[h.id]}
-              onLog={(v) => log(h, v)}
-              onClear={() => clearLog(h)}
-            />
-          ))}
-        </div>
-      )}
+        <header className="mb-12">
+          <p className="kicker">Today</p>
+          <h1 className="serif italic text-6xl leading-[0.95] mt-3">
+            {weekday}.
+          </h1>
+          <p className="text-muted text-sm mt-2">{dateLine}</p>
+        </header>
 
-      <Link
-        href="/habits/new"
-        className="fixed bottom-6 right-6 rounded-full w-14 h-14 bg-indigo-600 text-white shadow-lg flex items-center justify-center text-3xl font-light"
-        aria-label="Add habit"
-      >
-        +
-      </Link>
-    </div>
+        {loading ? (
+          <div className="text-soft text-sm">Loading…</div>
+        ) : habits.length === 0 ? (
+          <div className="border-t border-b hairline py-16 text-center">
+            <p className="kicker mb-3">Nothing yet</p>
+            <p className="serif italic text-2xl mb-6">
+              Name the first small thing.
+            </p>
+            <Link
+              href="/habits/new"
+              className="inline-block border hairline px-5 py-2.5 text-[11px] tracking-[0.22em] uppercase hover:bg-ink hover:text-paper transition-colors"
+            >
+              Add a habit
+            </Link>
+          </div>
+        ) : (
+          <div className="border-t hairline stagger">
+            {habits.map((h) => (
+              <HabitRow
+                key={h.id}
+                habit={h}
+                entry={entries[h.id]}
+                onLog={(v) => log(h, v)}
+                onClear={() => clearLog(h)}
+              />
+            ))}
+          </div>
+        )}
+
+        {habits.length > 0 && (
+          <div className="mt-10 text-center">
+            <Link
+              href="/habits/new"
+              className="text-[11px] tracking-[0.22em] uppercase text-muted hover:text-ink transition-colors"
+            >
+              + Add another
+            </Link>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
 
-function HabitCard({
+function HabitRow({
   habit,
   entry,
   onLog,
@@ -164,50 +167,51 @@ function HabitCard({
   onClear: () => void;
 }) {
   const done = entry !== undefined;
+  const fulfilled = isFulfilled(habit, entry?.value);
+
   return (
-    <div
-      className="rounded-2xl p-4 bg-white dark:bg-zinc-900 border-l-4 shadow-sm"
-      style={{ borderLeftColor: habit.color }}
-    >
-      <div className="flex items-center justify-between mb-3">
+    <article className="border-b hairline py-7">
+      <header className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">{habit.emoji}</div>
-          <div>
-            <div className="font-medium">{habit.name}</div>
-            {habit.target !== null && habit.input_type !== "checkbox" && (
-              <div className="text-xs text-zinc-500">
-                Target: {habit.target}
-                {habit.unit ? ` ${habit.unit}` : ""}
-              </div>
-            )}
-          </div>
+          <span
+            className="inline-block w-2 h-2 rounded-full"
+            style={{ background: habit.color }}
+            aria-hidden
+          />
+          <span className="text-xl leading-none">{habit.emoji}</span>
+          <h2 className="serif italic text-2xl leading-tight">{habit.name}</h2>
         </div>
         {done && (
           <button
             onClick={onClear}
-            className="text-xs text-zinc-400 hover:text-rose-500 px-2 py-1"
+            className="kicker hover:text-ink transition-colors"
+            aria-label={`Clear ${habit.name}`}
           >
             Clear
           </button>
         )}
-      </div>
-      <HabitInput
+      </header>
+
+      <HabitControl
         key={entry?.id ?? "empty"}
         habit={habit}
         entry={entry}
+        fulfilled={fulfilled}
         onLog={onLog}
       />
-    </div>
+    </article>
   );
 }
 
-function HabitInput({
+function HabitControl({
   habit,
   entry,
+  fulfilled,
   onLog,
 }: {
   habit: Habit;
   entry?: Entry;
+  fulfilled: boolean;
   onLog: (v: number) => void;
 }) {
   const [val, setVal] = useState<number>(
@@ -215,17 +219,21 @@ function HabitInput({
   );
 
   if (habit.input_type === "checkbox") {
-    const done = entry !== undefined && Number(entry.value) > 0;
+    const on = entry !== undefined && Number(entry.value) > 0;
     return (
       <button
-        onClick={() => onLog(done ? 0 : 1)}
-        className={`w-full py-4 rounded-xl font-medium transition ${
-          done
-            ? "bg-emerald-500 text-white"
-            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
-        }`}
+        onClick={() => onLog(on ? 0 : 1)}
+        className="w-full flex items-baseline justify-between gap-4 group"
       >
-        {done ? "✓ Done" : "Mark complete"}
+        <span
+          className="serif tabular text-7xl leading-none"
+          style={{ color: on ? habit.color : "var(--ink-soft)" }}
+        >
+          {on ? "✓" : "—"}
+        </span>
+        <span className="kicker text-right">
+          {on ? "done" : "mark complete"}
+        </span>
       </button>
     );
   }
@@ -233,44 +241,63 @@ function HabitInput({
   if (habit.input_type === "counter") {
     const step = Number(habit.step) || 1;
     return (
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => {
-            const v = Math.max(0, val - step);
-            setVal(v);
-            onLog(v);
-          }}
-          className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-2xl font-semibold"
-        >
-          −
-        </button>
-        <div className="flex-1 text-center">
-          <div className="text-3xl font-semibold">{val}</div>
-          {habit.unit && <div className="text-xs text-zinc-500">{habit.unit}</div>}
+      <div className="flex items-baseline justify-between gap-4">
+        <div className="flex items-baseline gap-3">
+          <span
+            className="serif tabular text-7xl leading-none"
+            style={{ color: fulfilled ? habit.color : "var(--ink)" }}
+          >
+            {val}
+          </span>
+          {habit.unit && (
+            <span className="text-muted text-sm lowercase">{habit.unit}</span>
+          )}
+          {habit.target !== null && habit.target !== undefined && (
+            <span className="kicker">/ {habit.target}</span>
+          )}
         </div>
-        <button
-          onClick={() => {
-            const v = val + step;
-            setVal(v);
-            onLog(v);
-          }}
-          className="w-12 h-12 rounded-xl text-white text-2xl font-semibold"
-          style={{ backgroundColor: habit.color }}
-        >
-          +
-        </button>
+        <div className="flex items-center gap-2">
+          <StepButton
+            label="−"
+            onClick={() => {
+              const v = Math.max(0, val - step);
+              setVal(v);
+              onLog(v);
+            }}
+          />
+          <StepButton
+            label="+"
+            color={habit.color}
+            onClick={() => {
+              const v = val + step;
+              setVal(v);
+              onLog(v);
+            }}
+          />
+        </div>
       </div>
     );
   }
 
   if (habit.input_type === "slider") {
     return (
-      <div className="space-y-2">
-        <div className="flex justify-between items-baseline">
-          <span className="text-3xl font-semibold">{val}</span>
-          <span className="text-xs text-zinc-500">
-            {habit.min_value} – {habit.max_value}
-            {habit.unit ? ` ${habit.unit}` : ""}
+      <div className="space-y-4">
+        <div className="flex items-baseline justify-between">
+          <div className="flex items-baseline gap-3">
+            <span
+              className="serif tabular text-7xl leading-none"
+              style={{ color: fulfilled ? habit.color : "var(--ink)" }}
+            >
+              {val}
+            </span>
+            {habit.unit && (
+              <span className="text-muted text-sm lowercase">{habit.unit}</span>
+            )}
+          </div>
+          <span className="kicker">
+            {habit.target !== null && habit.target !== undefined
+              ? `/ ${habit.target}`
+              : `${habit.min_value}–${habit.max_value}`}
           </span>
         </div>
         <input
@@ -284,33 +311,61 @@ function HabitInput({
           onTouchEnd={() => onLog(val)}
           onMouseUp={() => onLog(val)}
           onKeyUp={() => onLog(val)}
-          className="w-full"
-          style={{ accentColor: habit.color }}
+          style={{ ["--thumb" as string]: habit.color }}
         />
       </div>
     );
   }
 
-  // number
+  // number — hero editable input, autosaves on blur
   return (
-    <div className="flex items-center gap-2">
-      <input
-        type="number"
-        inputMode="decimal"
-        value={val}
-        onChange={(e) => setVal(Number(e.target.value))}
-        onBlur={() => onLog(val)}
-        step={habit.step || 1}
-        className="flex-1 px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xl font-semibold"
-      />
-      {habit.unit && <span className="text-sm text-zinc-500">{habit.unit}</span>}
-      <button
-        onClick={() => onLog(val)}
-        className="px-4 py-3 rounded-xl text-white font-medium"
-        style={{ backgroundColor: habit.color }}
-      >
-        Save
-      </button>
+    <div className="flex items-baseline justify-between gap-4">
+      <div className="flex items-baseline gap-3">
+        <input
+          className="hero serif tabular text-7xl leading-none bg-transparent outline-none w-[4ch]"
+          type="number"
+          inputMode="decimal"
+          value={val}
+          step={habit.step || 1}
+          onChange={(e) => setVal(Number(e.target.value))}
+          onBlur={() => onLog(val)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+          style={{ color: fulfilled ? habit.color : "var(--ink)" }}
+        />
+        {habit.unit && (
+          <span className="text-muted text-sm lowercase">{habit.unit}</span>
+        )}
+        {habit.target !== null && habit.target !== undefined && (
+          <span className="kicker">/ {habit.target}</span>
+        )}
+      </div>
+      <span className="kicker">saves on blur</span>
     </div>
+  );
+}
+
+function StepButton({
+  label,
+  onClick,
+  color,
+}: {
+  label: string;
+  onClick: () => void;
+  color?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-11 h-11 rounded-full border hairline text-lg leading-none transition-colors hover:bg-ink hover:text-paper active:scale-95"
+      style={
+        color
+          ? { borderColor: color, color: "var(--ink)" }
+          : undefined
+      }
+    >
+      {label}
+    </button>
   );
 }
