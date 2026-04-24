@@ -1,14 +1,20 @@
 "use client";
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-function LoginForm() {
-  const params = useSearchParams();
+export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(
-    params.get("error") ? "Try again." : null,
-  );
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("error")
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError("Try again.");
+    }
+  }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -27,46 +33,10 @@ function LoginForm() {
         setLoading(false);
       }
     } catch {
-      // JS fetch blocked — let the native form submit instead
       (e.target as HTMLFormElement).submit();
     }
   }
 
-  return (
-    <form
-      action="/api/login"
-      method="POST"
-      onSubmit={onSubmit}
-      className="space-y-6"
-    >
-      <input
-        type="password"
-        name="password"
-        autoFocus
-        autoComplete="current-password"
-        enterKeyHint="go"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="password"
-        className="field text-center text-lg"
-      />
-      {error && (
-        <div className="text-center text-xs tracking-[0.2em] uppercase text-muted">
-          {error}
-        </div>
-      )}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full border hairline py-3 text-[11px] tracking-[0.22em] uppercase disabled:opacity-40 hover:bg-ink hover:text-paper transition-colors"
-      >
-        {loading ? "·  ·  ·" : "Enter"}
-      </button>
-    </form>
-  );
-}
-
-export default function LoginPage() {
   return (
     <main className="min-h-screen grain flex items-center justify-center px-6">
       <div className="relative z-10 w-full max-w-sm">
@@ -77,9 +47,36 @@ export default function LoginPage() {
             a quiet log of the things you do.
           </p>
         </div>
-        <Suspense fallback={null}>
-          <LoginForm />
-        </Suspense>
+        <form
+          action="/api/login"
+          method="POST"
+          onSubmit={onSubmit}
+          className="space-y-6"
+        >
+          <input
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            enterKeyHint="go"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="password"
+            className="field text-center text-base"
+            style={{ fontSize: "16px" }}
+          />
+          {error && (
+            <div className="text-center text-xs tracking-[0.2em] uppercase text-muted">
+              {error}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full border hairline py-3 text-[11px] tracking-[0.22em] uppercase disabled:opacity-40 hover:bg-ink hover:text-paper transition-colors"
+          >
+            {loading ? "·  ·  ·" : "Enter"}
+          </button>
+        </form>
       </div>
     </main>
   );
