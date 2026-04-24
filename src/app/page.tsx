@@ -11,10 +11,20 @@ function todayStr() {
   return `${y}-${m}-${day}`;
 }
 
+function isFulfilled(habit: Habit, value: number | undefined): boolean {
+  if (value === undefined || value <= 0) return false;
+  if (habit.input_type === "checkbox") return value > 0;
+  if (habit.target !== null && habit.target !== undefined) {
+    return Number(value) >= Number(habit.target);
+  }
+  return false;
+}
+
 export default function Home() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [entries, setEntries] = useState<Record<string, Entry>>({});
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
   const today = todayStr();
 
   useEffect(() => {
@@ -33,6 +43,12 @@ export default function Home() {
   }, [today]);
 
   async function log(habit: Habit, value: number) {
+    const wasHit = isFulfilled(habit, entries[habit.id]?.value);
+    const nowHit = isFulfilled(habit, value);
+    if (nowHit && !wasHit) {
+      setToast("Let your systems win 🌱");
+      setTimeout(() => setToast(null), 2200);
+    }
     setEntries((prev) => ({
       ...prev,
       [habit.id]: {
@@ -63,6 +79,14 @@ export default function Home() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 pb-24">
+      {toast && (
+        <div
+          role="status"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-emerald-500 text-white shadow-lg text-sm font-medium animate-[toastIn_220ms_ease-out]"
+        >
+          {toast}
+        </div>
+      )}
       <header className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Today</h1>
