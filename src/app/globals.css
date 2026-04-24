@@ -22,6 +22,29 @@
   }
 }
 
+/* Manual overrides — higher specificity than the media query. */
+:root[data-theme="light"] {
+  --paper: #f6f1e7;
+  --surface: #fbf7ee;
+  --ink: #18160f;
+  --ink-muted: #6b6456;
+  --ink-soft: #a89f8b;
+  --line: #e4dcca;
+  --accent: #18160f;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #0e0d09;
+  --surface: #16140e;
+  --ink: #f1e9d6;
+  --ink-muted: #8f8776;
+  --ink-soft: #565043;
+  --line: #27241c;
+  --accent: #f1e9d6;
+  color-scheme: dark;
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);
@@ -85,13 +108,20 @@ body {
 }
 
 @media (prefers-color-scheme: dark) {
-  .grain::before {
+  :root:not([data-theme="light"]) .grain::before {
     background-image: radial-gradient(
       rgba(241, 233, 214, 0.04) 1px,
       transparent 1px
     );
     mix-blend-mode: screen;
   }
+}
+:root[data-theme="dark"] .grain::before {
+  background-image: radial-gradient(
+    rgba(241, 233, 214, 0.04) 1px,
+    transparent 1px
+  );
+  mix-blend-mode: screen;
 }
 
 @keyframes toastIn {

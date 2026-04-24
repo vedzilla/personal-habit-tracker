@@ -37,6 +37,13 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+const themeBootstrap = `
+try {
+  var t = localStorage.getItem('theme');
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+} catch (e) {}
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -45,6 +52,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body className="min-h-full">{children}</body>
     </html>
   );

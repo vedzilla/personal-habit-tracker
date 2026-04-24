@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import ThemeToggle from "./ThemeToggle";
 
 const ITEMS = [
   { href: "/", label: "Today" },
@@ -42,6 +43,7 @@ export default function TopNav() {
             </Link>
           );
         })}
+        <ThemeToggle />
         <button
           onClick={logout}
           aria-label="Sign out"
