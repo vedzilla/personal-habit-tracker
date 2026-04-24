@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import TopNav from "@/components/TopNav";
+import { api, Unauthorized } from "@/lib/api";
 import type { Habit, Entry } from "@/lib/types";
 
 function dateDaysAgo(n: number) {
@@ -18,20 +19,35 @@ export default function StatsPage() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const from = dateDaysAgo(DAYS - 1);
-      const to = dateDaysAgo(0);
-      const [h, e] = await Promise.all([
-        fetch("/api/habits").then((r) => r.json()),
-        fetch(`/api/entries?from=${from}&to=${to}`).then((r) => r.json()),
-      ]);
-      setHabits(h as Habit[]);
-      setEntries(e as Entry[]);
-      setLoading(false);
+      setLoading(true);
+      setError(null);
+      try {
+        const from = dateDaysAgo(DAYS - 1);
+        const to = dateDaysAgo(0);
+        const [h, e] = await Promise.all([
+          api<Habit[]>("/api/habits"),
+          api<Entry[]>(`/api/entries?from=${from}&to=${to}`),
+        ]);
+        if (cancelled) return;
+        setHabits(Array.isArray(h) ? h : []);
+        setEntries(Array.isArray(e) ? e : []);
+      } catch (err) {
+        if (cancelled || err instanceof Unauthorized) return;
+        setError(err instanceof Error ? err.message : "Couldn't load stats.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
 
   const days = useMemo(() => {
     const arr: string[] = [];
@@ -74,8 +90,19 @@ export default function StatsPage() {
           </h1>
         </header>
 
-        {loading ? (
-          <div className="text-soft text-sm">Loading…</div>
+        {error ? (
+          <div className="border-t border-b hairline py-12 text-center">
+            <p className="kicker mb-3">Couldn&apos;t load</p>
+            <p className="serif italic text-xl mb-5">{error}</p>
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="inline-block border hairline px-5 py-2.5 text-[11px] tracking-[0.22em] uppercase hover:bg-ink hover:text-paper transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : loading ? (
+          <div className="text-soft text-sm text-center py-8">Loading…</div>
         ) : habits.length === 0 ? (
           <div className="border-t border-b hairline py-16 text-center">
             <p className="serif italic text-2xl">Nothing to show yet.</p>

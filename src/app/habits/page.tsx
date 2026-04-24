@@ -2,48 +2,63 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
+import { api, Unauthorized } from "@/lib/api";
 import type { Habit } from "@/lib/types";
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    fetch("/api/habits")
-      .then((r) => r.json())
-      .then((h) => {
-        setHabits(h as Habit[]);
-        setLoading(false);
-      });
-  }, []);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const h = await api<Habit[]>("/api/habits");
+        if (cancelled) return;
+        setHabits(Array.isArray(h) ? h : []);
+      } catch (err) {
+        if (cancelled || err instanceof Unauthorized) return;
+        setError(err instanceof Error ? err.message : "Couldn't load habits.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
 
   async function del(id: string) {
     if (!confirm("Delete this habit and all its history?")) return;
-    await fetch(`/api/habits/${id}`, { method: "DELETE" });
-    setHabits((prev) => prev.filter((h) => h.id !== id));
+    try {
+      await api(`/api/habits/${id}`, { method: "DELETE" });
+      setHabits((prev) => prev.filter((h) => h.id !== id));
+    } catch {}
   }
 
   async function duplicate(h: Habit) {
-    const res = await fetch("/api/habits", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: `${h.name} (copy)`,
-        emoji: h.emoji,
-        color: h.color,
-        input_type: h.input_type,
-        unit: h.unit,
-        min_value: h.min_value,
-        max_value: h.max_value,
-        step: h.step,
-        target: h.target,
-        direction: h.direction,
-      }),
-    });
-    if (res.ok) {
-      const copy = (await res.json()) as Habit;
+    try {
+      const copy = await api<Habit>("/api/habits", {
+        method: "POST",
+        body: JSON.stringify({
+          name: `${h.name} (copy)`,
+          emoji: h.emoji,
+          color: h.color,
+          input_type: h.input_type,
+          unit: h.unit,
+          min_value: h.min_value,
+          max_value: h.max_value,
+          step: h.step,
+          target: h.target,
+          direction: h.direction,
+        }),
+      });
       setHabits((prev) => [...prev, copy]);
-    }
+    } catch {}
   }
 
   return (
@@ -64,8 +79,19 @@ export default function HabitsPage() {
           </Link>
         </header>
 
-        {loading ? (
-          <div className="text-soft text-sm">Loading…</div>
+        {error ? (
+          <div className="border-t border-b hairline py-12 text-center">
+            <p className="kicker mb-3">Couldn&apos;t load</p>
+            <p className="serif italic text-xl mb-5">{error}</p>
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="inline-block border hairline px-5 py-2.5 text-[11px] tracking-[0.22em] uppercase hover:bg-ink hover:text-paper transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : loading ? (
+          <div className="text-soft text-sm text-center py-8">Loading…</div>
         ) : habits.length === 0 ? (
           <div className="border-t border-b hairline py-16 text-center">
             <p className="serif italic text-2xl">Nothing to manage yet.</p>

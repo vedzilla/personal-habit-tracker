@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
+import { api, Unauthorized } from "@/lib/api";
 import type { Habit, Entry } from "@/lib/types";
 
 function toDateStr(d: Date) {
@@ -59,6 +60,8 @@ export default function Home() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [entries, setEntries] = useState<Record<string, Entry>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [selected, setSelected] = useState<string>(todayStr());
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -67,24 +70,33 @@ export default function Home() {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [h, e] = await Promise.all([
-        fetch("/api/habits").then((r) => r.json()),
-        fetch(`/api/entries?from=${selected}&to=${selected}`).then((r) =>
-          r.json(),
-        ),
-      ]);
-      if (cancelled) return;
-      setHabits(h as Habit[]);
-      const map: Record<string, Entry> = {};
-      for (const x of e as Entry[]) map[x.habit_id] = x;
-      setEntries(map);
-      setLoading(false);
+      setError(null);
+      try {
+        const [h, e] = await Promise.all([
+          api<Habit[]>("/api/habits"),
+          api<Entry[]>(`/api/entries?from=${selected}&to=${selected}`),
+        ]);
+        if (cancelled) return;
+        const habitsArr = Array.isArray(h) ? h : [];
+        const entriesArr = Array.isArray(e) ? e : [];
+        setHabits(habitsArr);
+        const map: Record<string, Entry> = {};
+        for (const x of entriesArr) map[x.habit_id] = x;
+        setEntries(map);
+      } catch (err) {
+        if (cancelled || err instanceof Unauthorized) return;
+        setError(
+          err instanceof Error ? err.message : "Couldn't reach the server.",
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selected, reloadKey]);
 
   function flashToast(msg: string) {
     setToast(msg);
@@ -116,15 +128,18 @@ export default function Home() {
         created_at: prev[habit.id]?.created_at ?? new Date().toISOString(),
       },
     }));
-    await fetch("/api/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        habit_id: habit.id,
-        value,
-        logged_date: selected,
-      }),
-    });
+    try {
+      await api("/api/entries", {
+        method: "POST",
+        body: JSON.stringify({
+          habit_id: habit.id,
+          value,
+          logged_date: selected,
+        }),
+      });
+    } catch {
+      // Network/server failure — optimistic state stays; no disruption
+    }
   }
 
   async function clearLog(habit: Habit) {
@@ -133,10 +148,12 @@ export default function Home() {
       delete n[habit.id];
       return n;
     });
-    await fetch(
-      `/api/entries?habit_id=${habit.id}&logged_date=${selected}`,
-      { method: "DELETE" },
-    );
+    try {
+      await api(
+        `/api/entries?habit_id=${habit.id}&logged_date=${selected}`,
+        { method: "DELETE" },
+      );
+    } catch {}
   }
 
   function prevDay() {
@@ -236,8 +253,19 @@ export default function Home() {
           )}
         </header>
 
-        {loading ? (
-          <div className="text-soft text-sm">Loading…</div>
+        {error ? (
+          <div className="border-t border-b hairline py-12 text-center">
+            <p className="kicker mb-3">Couldn&apos;t load</p>
+            <p className="serif italic text-xl mb-5">{error}</p>
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="inline-block border hairline px-5 py-2.5 text-[11px] tracking-[0.22em] uppercase hover:bg-ink hover:text-paper transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : loading ? (
+          <div className="text-soft text-sm text-center py-8">Loading…</div>
         ) : habits.length === 0 ? (
           <div className="border-t border-b hairline py-16 text-center">
             <p className="kicker mb-3">Nothing yet</p>
