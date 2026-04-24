@@ -12,6 +12,7 @@ create table if not exists habits (
   max_value numeric not null default 10,
   step numeric not null default 1,
   target numeric,
+  direction text not null default 'positive' check (direction in ('positive','negative')),
   position integer not null default 0,
   archived boolean not null default false,
   created_at timestamptz not null default now()

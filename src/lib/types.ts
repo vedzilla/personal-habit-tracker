@@ -1,4 +1,5 @@
 export type InputType = "checkbox" | "counter" | "slider" | "number";
+export type Direction = "positive" | "negative";
 
 export type Habit = {
   id: string;
@@ -11,6 +12,7 @@ export type Habit = {
   max_value: number;
   step: number;
   target: number | null;
+  direction: Direction;
   position: number;
   archived: boolean;
   created_at: string;

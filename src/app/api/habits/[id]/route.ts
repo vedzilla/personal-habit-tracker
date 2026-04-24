@@ -19,6 +19,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     "max_value",
     "step",
     "target",
+    "direction",
     "position",
     "archived",
   ];

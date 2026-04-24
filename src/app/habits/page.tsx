@@ -37,6 +37,7 @@ export default function HabitsPage() {
         max_value: h.max_value,
         step: h.step,
         target: h.target,
+        direction: h.direction,
       }),
     });
     if (res.ok) {
@@ -88,7 +89,7 @@ export default function HabitsPage() {
                     {h.input_type}
                     {h.unit ? ` · ${h.unit}` : ""}
                     {h.target !== null && h.target !== undefined
-                      ? ` · target ${h.target}`
+                      ? ` · ${h.direction === "negative" ? "under" : "target"} ${h.target}`
                       : ""}
                   </div>
                 </div>

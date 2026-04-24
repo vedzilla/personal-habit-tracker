@@ -28,6 +28,7 @@ export async function POST(req: Request) {
       max_value: body.max_value ?? 10,
       step: body.step ?? 1,
       target: body.target ?? null,
+      direction: body.direction === "negative" ? "negative" : "positive",
     })
     .select()
     .single();

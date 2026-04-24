@@ -42,12 +42,17 @@ function fullDateLine(selected: string) {
 }
 
 function isFulfilled(habit: Habit, value: number | undefined): boolean {
-  if (value === undefined || value <= 0) return false;
-  if (habit.input_type === "checkbox") return value > 0;
-  if (habit.target !== null && habit.target !== undefined) {
-    return Number(value) >= Number(habit.target);
-  }
-  return false;
+  if (habit.input_type === "checkbox") return (value ?? 0) > 0;
+  if (habit.target === null || habit.target === undefined) return false;
+  const v = Number(value ?? 0);
+  const t = Number(habit.target);
+  return habit.direction === "negative" ? v <= t : v >= t;
+}
+
+function isOverLimit(habit: Habit, value: number | undefined): boolean {
+  if (habit.direction !== "negative") return false;
+  if (habit.target === null || habit.target === undefined) return false;
+  return Number(value ?? 0) > Number(habit.target);
 }
 
 export default function Home() {
@@ -81,12 +86,25 @@ export default function Home() {
     };
   }, [selected]);
 
+  function flashToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2400);
+  }
+
   async function log(habit: Habit, value: number) {
-    const wasHit = isFulfilled(habit, entries[habit.id]?.value);
-    const nowHit = isFulfilled(habit, value);
-    if (nowHit && !wasHit) {
-      setToast("let your systems win");
-      setTimeout(() => setToast(null), 2400);
+    const prev = entries[habit.id]?.value;
+    if (habit.direction === "negative") {
+      const wasOver = isOverLimit(habit, prev);
+      const nowOver = isOverLimit(habit, value);
+      if (nowOver && !wasOver) {
+        flashToast("your systems win. do better tomorrow.");
+      }
+    } else {
+      const wasHit = isFulfilled(habit, prev);
+      const nowHit = isFulfilled(habit, value);
+      if (nowHit && !wasHit) {
+        flashToast("let your systems win.");
+      }
     }
     setEntries((prev) => ({
       ...prev,
@@ -168,7 +186,7 @@ export default function Home() {
             className="serif italic text-4xl sm:text-5xl text-center leading-tight text-ink"
             style={{ animation: "toastCenter 2200ms ease-out both" }}
           >
-            {toast}.
+            {toast}
           </div>
         </div>
       )}
@@ -242,6 +260,14 @@ export default function Home() {
                 entry={entries[h.id]}
                 onLog={(v) => log(h, v)}
                 onClear={() => clearLog(h)}
+                onConfirm={() => {
+                  const v = entries[h.id]?.value ?? 0;
+                  if (isOverLimit(h, v)) {
+                    flashToast("your systems win. do better tomorrow.");
+                  } else {
+                    flashToast("well done.");
+                  }
+                }}
               />
             ))}
           </div>
@@ -267,36 +293,57 @@ function HabitRow({
   entry,
   onLog,
   onClear,
+  onConfirm,
 }: {
   habit: Habit;
   entry?: Entry;
   onLog: (v: number) => void;
   onClear: () => void;
+  onConfirm: () => void;
 }) {
   const done = entry !== undefined;
   const fulfilled = isFulfilled(habit, entry?.value);
+  const overLimit = isOverLimit(habit, entry?.value);
+  const isNegative = habit.direction === "negative";
 
   return (
     <article className="border-b hairline py-7">
-      <header className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between mb-5 gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <span
-            className="inline-block w-2 h-2 rounded-full"
+            className="inline-block w-2 h-2 rounded-full shrink-0"
             style={{ background: habit.color }}
             aria-hidden
           />
-          <span className="text-xl leading-none">{habit.emoji}</span>
-          <h2 className="serif italic text-2xl leading-tight">{habit.name}</h2>
+          <span className="text-xl leading-none shrink-0">{habit.emoji}</span>
+          <h2 className="serif italic text-2xl leading-tight truncate">
+            {habit.name}
+          </h2>
+          {isNegative && (
+            <span className="kicker shrink-0" aria-label="Negative habit">
+              ↓ stay under
+            </span>
+          )}
         </div>
-        {done && (
-          <button
-            onClick={onClear}
-            className="kicker hover:text-ink transition-colors"
-            aria-label={`Clear ${habit.name}`}
-          >
-            Clear
-          </button>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          {isNegative && habit.target !== null && (
+            <button
+              onClick={onConfirm}
+              className="kicker hover:text-ink transition-colors border-b hairline pb-0.5"
+            >
+              Confirm
+            </button>
+          )}
+          {done && (
+            <button
+              onClick={onClear}
+              className="kicker hover:text-ink transition-colors"
+              aria-label={`Clear ${habit.name}`}
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </header>
 
       <HabitControl
@@ -304,6 +351,7 @@ function HabitRow({
         habit={habit}
         entry={entry}
         fulfilled={fulfilled}
+        overLimit={overLimit}
         onLog={onLog}
       />
     </article>
@@ -314,16 +362,24 @@ function HabitControl({
   habit,
   entry,
   fulfilled,
+  overLimit,
   onLog,
 }: {
   habit: Habit;
   entry?: Entry;
   fulfilled: boolean;
+  overLimit: boolean;
   onLog: (v: number) => void;
 }) {
   const [val, setVal] = useState<number>(
     entry ? Number(entry.value) : Number(habit.min_value) || 0,
   );
+
+  const heroColor = overLimit
+    ? "#9e3a2f"
+    : fulfilled
+      ? habit.color
+      : "var(--ink)";
 
   if (habit.input_type === "checkbox") {
     const on = entry !== undefined && Number(entry.value) > 0;
@@ -352,7 +408,7 @@ function HabitControl({
         <div className="flex items-baseline gap-3">
           <span
             className="serif tabular text-7xl leading-none"
-            style={{ color: fulfilled ? habit.color : "var(--ink)" }}
+            style={{ color: heroColor }}
           >
             {val}
           </span>
@@ -360,7 +416,10 @@ function HabitControl({
             <span className="text-muted text-sm lowercase">{habit.unit}</span>
           )}
           {habit.target !== null && habit.target !== undefined && (
-            <span className="kicker">/ {habit.target}</span>
+            <span className="kicker">
+              {habit.direction === "negative" ? "under " : "/ "}
+              {habit.target}
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -393,7 +452,7 @@ function HabitControl({
           <div className="flex items-baseline gap-3">
             <span
               className="serif tabular text-7xl leading-none"
-              style={{ color: fulfilled ? habit.color : "var(--ink)" }}
+              style={{ color: heroColor }}
             >
               {val}
             </span>
@@ -403,7 +462,7 @@ function HabitControl({
           </div>
           <span className="kicker">
             {habit.target !== null && habit.target !== undefined
-              ? `/ ${habit.target}`
+              ? `${habit.direction === "negative" ? "under " : "/ "}${habit.target}`
               : `${habit.min_value}–${habit.max_value}`}
           </span>
         </div>
@@ -439,13 +498,16 @@ function HabitControl({
           onKeyDown={(e) => {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           }}
-          style={{ color: fulfilled ? habit.color : "var(--ink)" }}
+          style={{ color: heroColor }}
         />
         {habit.unit && (
           <span className="text-muted text-sm lowercase">{habit.unit}</span>
         )}
         {habit.target !== null && habit.target !== undefined && (
-          <span className="kicker">/ {habit.target}</span>
+          <span className="kicker">
+            {habit.direction === "negative" ? "under " : "/ "}
+            {habit.target}
+          </span>
         )}
       </div>
       <span className="kicker">saves on blur</span>

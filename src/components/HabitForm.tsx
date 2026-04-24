@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Habit, InputType } from "@/lib/types";
+import type { Direction, Habit, InputType } from "@/lib/types";
 
 const COLORS = [
   "#9e3a2f", "#b8693d", "#c49a3c", "#7d8837",
@@ -36,6 +36,9 @@ export default function HabitForm({ habit }: { habit?: Habit }) {
   const [target, setTarget] = useState(
     habit?.target !== null && habit?.target !== undefined ? String(habit.target) : "",
   );
+  const [direction, setDirection] = useState<Direction>(
+    habit?.direction ?? "positive",
+  );
   const [saving, setSaving] = useState(false);
 
   async function save(e: React.FormEvent) {
@@ -51,6 +54,7 @@ export default function HabitForm({ habit }: { habit?: Habit }) {
       max_value: Number(maxValue) || 10,
       step: Number(step) || 1,
       target: target === "" ? null : Number(target),
+      direction: inputType === "checkbox" ? "positive" : direction,
     };
     const res = habit
       ? await fetch(`/api/habits/${habit.id}`, {
@@ -158,6 +162,39 @@ export default function HabitForm({ habit }: { habit?: Habit }) {
       </Section>
 
       {inputType !== "checkbox" && (
+        <Section label="Its polarity">
+          <div className="grid grid-cols-2 gap-px bg-[color:var(--line)] border hairline">
+            {(
+              [
+                { v: "positive" as const, title: "Reach it", hint: "hit the target" },
+                { v: "negative" as const, title: "Stay under", hint: "don't cross the line" },
+              ]
+            ).map((o) => (
+              <button
+                key={o.v}
+                type="button"
+                onClick={() => setDirection(o.v)}
+                className={`px-4 py-4 text-left transition-colors ${
+                  direction === o.v
+                    ? "bg-[color:var(--ink)] text-[color:var(--paper)]"
+                    : "bg-[color:var(--paper)] hover:bg-[color:var(--surface)]"
+                }`}
+              >
+                <div className="serif italic text-lg leading-none">{o.title}</div>
+                <div
+                  className={`text-[11px] tracking-[0.15em] uppercase mt-2 ${
+                    direction === o.v ? "opacity-70" : "text-soft"
+                  }`}
+                >
+                  {o.hint}
+                </div>
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {inputType !== "checkbox" && (
         <Section label="Its shape">
           <div className="space-y-6">
             <div>
@@ -215,12 +252,17 @@ export default function HabitForm({ habit }: { habit?: Habit }) {
             )}
 
             <div>
-              <span className="kicker block mb-1">Target (optional)</span>
+              <span className="kicker block mb-1">
+                {direction === "negative"
+                  ? "Daily limit (stay under)"
+                  : "Daily target (optional)"}
+              </span>
               <input
                 type="number"
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
-                placeholder="e.g. 8"
+                placeholder={direction === "negative" ? "e.g. 2" : "e.g. 8"}
+                required={direction === "negative"}
                 className="field"
               />
             </div>
