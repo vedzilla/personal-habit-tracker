@@ -161,13 +161,15 @@ export default function Home() {
       {toast && (
         <div
           role="status"
-          className="fixed top-5 left-1/2 z-50 px-5 py-2.5 rounded-full border hairline text-[11px] tracking-[0.22em] uppercase text-ink shadow-sm"
-          style={{
-            animation: "toastIn 260ms ease-out",
-            background: "var(--surface)",
-          }}
+          aria-live="polite"
+          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none px-6"
         >
-          {toast}
+          <div
+            className="serif italic text-4xl sm:text-5xl text-center leading-tight text-ink"
+            style={{ animation: "toastCenter 2200ms ease-out both" }}
+          >
+            {toast}.
+          </div>
         </div>
       )}
       <div className="relative max-w-xl mx-auto px-6 pt-10 pb-32 z-10">
